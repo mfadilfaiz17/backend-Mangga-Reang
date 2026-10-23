@@ -1,0 +1,44 @@
+# Environment and secrets
+.env
+.env.*
+!.env.example
+
+# Project-private documentation
+/ARCHITECTURE.md
+/DATA_MODEL.md
+/API_SPEC.md
+/RULES.md
+/SECURITY.md
+/mangga-reang-prd.md
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyd
+*.egg-info/
+.venv/
+venv/
+env/
+/web_mangga/
+
+# Test, coverage, and tooling
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Runtime and local files
+*.log
+*.sqlite
+*.sqlite3
+instance/
+
+# IDE and operating system files
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea/
+*.code-workspace
+.DS_Store
+Thumbs.db
