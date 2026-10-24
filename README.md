@@ -4,22 +4,18 @@ Backend REST API untuk platform B2B supply chain mangga. Backend ini menjadi pen
 
 ## Status Implementasi
 
-Fondasi proyek saat ini sudah menyediakan:
+Backend saat ini sudah menyediakan:
 
 - konfigurasi aplikasi berbasis environment;
-- dependency FastAPI, SQLAlchemy, PostgreSQL, Pydantic Settings, JWT, dan bcrypt;
-- koneksi database SQLAlchemy;
-- model awal `Mangga` untuk tabel `mangga_inventaris`.
-
-Fitur yang masih perlu diimplementasikan secara bertahap:
-
-- model user dan role;
-- autentikasi register/login;
-- dependency JWT dan role authorization;
-- schema request/response;
+- model `User`, `Inventory`, `RfqTransaction`, dan `LogisticsTracking`;
+- autentikasi register/login dengan JWT;
+- role authorization untuk buyer, petani, dan admin gudang;
+- schema request/response Pydantic v2;
 - CRUD inventaris, RFQ, dan tracking;
-- transaksi persetujuan RFQ yang atomik;
-- router API dan integration test.
+- approval RFQ atomik dengan row lock dan rollback transaksi;
+- router API untuk auth, inventaris, RFQ, dan logistik.
+
+Migration database dan integration test masih perlu ditambahkan sebelum deployment production.
 
 README ini menjelaskan cara menjalankan backend dan batas kondisi implementasi saat ini. Detail kontrak endpoint, model data, aturan engineering, arsitektur, dan keamanan dikelola pada dokumen teknis terpisah.
 
@@ -38,13 +34,20 @@ README ini menjelaskan cara menjalankan backend dan batas kondisi implementasi s
 
 ```text
 backend-mangga/
+├── api/
+│   ├── deps.py
+│   └── routes/
 ├── core/
 │   └── config.py
-└── models/
-    └── domain_models.py
+├── crud/
+├── db/
+├── models/
+├── schemas/
+├── services/
+└── main.py
 ```
 
-`domain_models.py` saat ini masih mengimpor konfigurasi melalui `app.core.config`. Pastikan package dijalankan dari struktur package yang menyediakan import `app`, atau sesuaikan import ketika struktur aplikasi final dibentuk.
+Entry point utama berada pada [backend-mangga/main.py](./backend-mangga/main.py). File `main.py` di root hanya menjadi launcher agar aplikasi dapat dijalankan dari root proyek.
 
 ## Persiapan Lokal
 
@@ -75,17 +78,22 @@ File `.env` diabaikan Git dan tidak boleh di-commit. Nilai pada `.env.example` h
 
 ### 4. Siapkan database
 
-Buat database PostgreSQL bernama `mangga_db` atau sesuaikan nama database pada `DATABASE_URL`. Migration dan bootstrap tabel belum tersedia pada kondisi implementasi saat ini, sehingga jangan menganggap seluruh tabel domain sudah otomatis dibuat.
+Buat database PostgreSQL bernama `mangga_db` atau sesuaikan nama database pada `DATABASE_URL`. Migration belum tersedia, sehingga tabel domain perlu dibuat melalui migration sebelum API digunakan terhadap database baru.
 
 ## Menjalankan API
 
-Entry point FastAPI belum tersedia pada kondisi saat ini. Setelah `main.py` dibuat, jalankan dari root proyek dengan:
+Jalankan dari root proyek dengan:
 
 ```powershell
-python -m uvicorn app.main:app --reload
+python -m uvicorn main:app --reload
 ```
 
-Jika entry point menggunakan lokasi berbeda, sesuaikan module path pada perintah Uvicorn.
+Alternatif, jalankan langsung dari folder backend:
+
+```powershell
+Set-Location .\backend-mangga
+python -m uvicorn main:app --reload
+```
 
 ## Alur Backend
 
