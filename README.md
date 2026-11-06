@@ -14,8 +14,12 @@ Backend saat ini sudah menyediakan:
 - CRUD inventaris, RFQ, dan tracking;
 - approval RFQ atomik dengan row lock dan rollback transaksi;
 - router API untuk auth, inventaris, RFQ, dan logistik.
+- pagination dasar pada endpoint collection;
+- konfigurasi CORS melalui `CORS_ORIGINS`;
+- Alembic migration dan constraint database.
 
-Migration database dan integration test masih perlu ditambahkan sebelum deployment production.
+Integration test PostgreSQL, concurrency test, dan hardening deployment masih
+perlu dilakukan sebelum deployment production.
 
 README ini menjelaskan cara menjalankan backend dan batas kondisi implementasi saat ini. Detail kontrak endpoint, model data, aturan engineering, arsitektur, dan keamanan dikelola pada dokumen teknis terpisah.
 
@@ -44,6 +48,8 @@ backend-mangga/
 ├── models/
 ├── schemas/
 ├── services/
+├── scripts/
+│   └── provision_admin.py
 └── main.py
 ```
 
@@ -62,7 +68,8 @@ py -3.11 -m venv .venv
 
 ### 2. Install dependency
 
-```powershell
+```
+powershell
 python -m pip install -r requirements.txt
 ```
 
@@ -78,7 +85,23 @@ File `.env` diabaikan Git dan tidak boleh di-commit. Nilai pada `.env.example` h
 
 ### 4. Siapkan database
 
-Buat database PostgreSQL bernama `mangga_db` atau sesuaikan nama database pada `DATABASE_URL`. Migration belum tersedia, sehingga tabel domain perlu dibuat melalui migration sebelum API digunakan terhadap database baru.
+Buat database PostgreSQL bernama `mangga_db` atau sesuaikan nama database pada
+`DATABASE_URL`, lalu jalankan migration:
+
+```powershell
+python -m alembic upgrade head
+```
+
+Untuk database development lama yang sudah dibuat dengan `create_all()`, backup
+database terlebih dahulu, lalu adopsi schema dan menerapkan constraint:
+
+```powershell
+python -m alembic stamp 20261106_0001
+python -m alembic upgrade head
+```
+
+Jangan menjalankan `upgrade head` langsung pada database lama karena initial
+migration akan mencoba membuat tabel yang sudah ada.
 
 ## Menjalankan API
 
@@ -94,6 +117,43 @@ Alternatif, jalankan langsung dari folder backend:
 Set-Location .\backend-mangga
 python -m uvicorn main:app --reload
 ```
+
+## Menjalankan Test Otomatis
+
+Test backend menggunakan SQLite in-memory agar tidak mengubah database
+development PostgreSQL. Jalankan dari root proyek:
+
+```powershell
+python -m pytest backend-mangga/tests -q
+```
+
+Suite ini mencakup register/login, validasi token, authorization role,
+inventaris, RFQ, pengurangan stok, approval ganda, dan isolasi tracking buyer.
+Suite juga memeriksa token expired, algorithm JWT yang tidak diizinkan,
+health check, dan rollback transaksi.
+
+Test migration PostgreSQL dijalankan terpisah pada database sementara:
+
+```powershell
+python -m alembic upgrade head
+python -m alembic downgrade base
+```
+
+Jangan menjalankan `downgrade base` pada database development yang berisi data.
+
+## Provisioning Admin Development
+
+Admin tidak dapat dibuat melalui register publik. Setelah migration aktif,
+buat admin development secara manual:
+
+```powershell
+python backend-mangga/scripts/provision_admin.py `
+  --email admin@example.com `
+  --password "ganti-password-kuat" `
+  --name "Admin Gudang"
+```
+
+Jangan menyimpan password admin pada repository atau script.
 
 ## Alur Backend
 
@@ -118,6 +178,7 @@ Approval RFQ harus diproses sebagai satu transaksi database agar stok tidak nega
 | `SECRET_KEY` | Secret untuk signing JWT |
 | `ALGORITHM` | Algoritma JWT, default `HS256` |
 | `ACCESS_TOKEN_EXPIRE_MINUTES` | Masa berlaku access token |
+| `CORS_ORIGINS` | Daftar origin frontend dipisahkan koma |
 
 Jangan menaruh password, JWT secret, access token, atau connection string production di repository, log, issue, atau dokumentasi.
 
@@ -129,3 +190,5 @@ Jangan menaruh password, JWT secret, access token, atau connection string produc
 - Pastikan perubahan database memiliki migration.
 - Pastikan endpoint privat memvalidasi token dan role.
 - Pastikan perubahan stok memiliki test untuk kondisi race dan rollback.
+- Pastikan `/health` mengembalikan status database yang benar.
+- Jalankan `python -m alembic upgrade head` pada database deployment.
