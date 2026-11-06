@@ -1,3 +1,5 @@
+import logging
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -11,6 +13,7 @@ from services.auth import authenticate, register
 
 
 router = APIRouter()
+security_logger = logging.getLogger("mangga_reang.security")
 
 
 @router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
@@ -33,6 +36,7 @@ def register_user(payload: UserCreate, db: Session = Depends(get_db)) -> UserRes
 def login(payload: LoginRequest, db: Session = Depends(get_db)) -> TokenResponse:
     user = authenticate(db, str(payload.email), payload.password)
     if user is None:
+        security_logger.warning("Login failed for email=%s", str(payload.email).lower())
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid email or password",

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
 from api.deps import require_roles
@@ -26,18 +26,22 @@ def create_order(
 
 @router.get("/me", response_model=list[RfqResponse])
 def get_my_orders(
+    offset: int = Query(default=0, ge=0),
+    limit: int = Query(default=50, ge=1, le=100),
     db: Session = Depends(get_db),
     user: User = Depends(require_roles(Role.BUYER_B2B)),
 ) -> list[RfqResponse]:
-    return rfq.list_for_buyer(db, user.id)
+    return rfq.list_for_buyer(db, user.id, offset=offset, limit=limit)
 
 
 @router.get("/all", response_model=list[RfqResponse])
 def get_all_orders(
+    offset: int = Query(default=0, ge=0),
+    limit: int = Query(default=50, ge=1, le=100),
     db: Session = Depends(get_db),
     _: User = Depends(require_roles(Role.ADMIN_GUDANG)),
 ) -> list[RfqResponse]:
-    return rfq.list_all(db)
+    return rfq.list_all(db, offset=offset, limit=limit)
 
 
 @router.put("/{rfq_id}/approve", response_model=RfqResponse)

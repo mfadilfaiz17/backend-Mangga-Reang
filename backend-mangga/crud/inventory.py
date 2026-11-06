@@ -1,15 +1,16 @@
 from sqlalchemy import select
 from sqlalchemy.orm import Session
-
 from models.domain_models import Inventory
 
 
-def list_public(db: Session) -> list[Inventory]:
+def list_public(db: Session, *, offset: int = 0, limit: int = 50) -> list[Inventory]:
     return list(
         db.scalars(
             select(Inventory)
             .where(Inventory.is_active.is_(True), Inventory.tonase_tersedia > 0)
             .order_by(Inventory.id)
+            .offset(offset)
+            .limit(limit)
         )
     )
 

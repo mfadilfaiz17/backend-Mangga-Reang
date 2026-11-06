@@ -1,7 +1,16 @@
 from datetime import datetime, timezone
 from decimal import Decimal
 from enum import Enum
-from sqlalchemy import Boolean, DateTime, Enum as SqlEnum, ForeignKey, Integer, Numeric, String
+from sqlalchemy import (
+    Boolean,
+    CheckConstraint,
+    DateTime,
+    Enum as SqlEnum,
+    ForeignKey,
+    Integer,
+    Numeric,
+    String,
+)
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from db.session import Base
 
@@ -58,6 +67,10 @@ class User(Base):
 
 class Inventory(Base):
     __tablename__ = "mangga_inventaris"
+    __table_args__ = (
+        CheckConstraint("tonase_tersedia >= 0", name="ck_inventory_tonase_non_negative"),
+        CheckConstraint("harga_per_ton >= 0", name="ck_inventory_harga_non_negative"),
+    )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     id_petani: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"), index=True)
@@ -77,6 +90,10 @@ Mangga = Inventory
 
 class RfqTransaction(Base):
     __tablename__ = "rfq_transactions"
+    __table_args__ = (
+        CheckConstraint("tonase_diminta > 0", name="ck_rfq_tonase_positive"),
+        CheckConstraint("total_harga >= 0", name="ck_rfq_total_non_negative"),
+    )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     id_buyer: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"), index=True)

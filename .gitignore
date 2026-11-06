@@ -3,14 +3,6 @@
 .env.*
 !.env.example
 
-# Project-private documentation
-/ARCHITECTURE.md
-/DATA_MODEL.md
-/API_SPEC.md
-/RULES.md
-/SECURITY.md
-/mangga-reang-prd.md
-
 # Python
 __pycache__/
 *.py[cod]

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from api.deps import get_current_user, require_roles
@@ -13,8 +13,12 @@ router = APIRouter()
 
 
 @router.get("/", response_model=list[InventoryResponse])
-def list_inventory(db: Session = Depends(get_db)) -> list[InventoryResponse]:
-    return inventory.list_public(db)
+def list_inventory(
+    offset: int = Query(default=0, ge=0),
+    limit: int = Query(default=50, ge=1, le=100),
+    db: Session = Depends(get_db),
+) -> list[InventoryResponse]:
+    return inventory.list_public(db, offset=offset, limit=limit)
 
 
 @router.post("/", response_model=InventoryResponse, status_code=201)
