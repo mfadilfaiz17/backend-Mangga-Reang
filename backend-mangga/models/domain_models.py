@@ -63,6 +63,10 @@ class User(Base):
 
     inventories: Mapped[list["Inventory"]] = relationship(back_populates="farmer")
     orders: Mapped[list["RfqTransaction"]] = relationship(back_populates="buyer")
+    notifications: Mapped[list["Notification"]] = relationship(back_populates="user")
+    password_reset_tokens: Mapped[list["PasswordResetToken"]] = relationship(
+        back_populates="user", cascade="all, delete-orphan"
+    )
 
 
 class Inventory(Base):
@@ -83,9 +87,27 @@ class Inventory(Base):
 
     farmer: Mapped[User] = relationship(back_populates="inventories")
     rfqs: Mapped[list["RfqTransaction"]] = relationship(back_populates="inventory")
+    audit_events: Mapped[list["InventoryAudit"]] = relationship(back_populates="inventory")
 
 
 Mangga = Inventory
+
+
+class InventoryAudit(Base):
+    __tablename__ = "inventory_audit"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    inventory_id: Mapped[int] = mapped_column(
+        ForeignKey("mangga_inventaris.id", ondelete="RESTRICT"), index=True
+    )
+    actor_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"), index=True)
+    action: Mapped[str] = mapped_column(String(32))
+    tonase_tersedia: Mapped[Decimal] = mapped_column(Numeric(12, 3))
+    harga_per_ton: Mapped[Decimal] = mapped_column(Numeric(14, 2))
+    is_active: Mapped[bool] = mapped_column(Boolean)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+    inventory: Mapped[Inventory] = relationship(back_populates="audit_events")
 
 
 class RfqTransaction(Base):
@@ -125,3 +147,30 @@ class LogisticsTracking(Base):
     updated_by: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"))
 
     rfq: Mapped[RfqTransaction] = relationship(back_populates="tracking")
+
+
+class Notification(Base):
+    __tablename__ = "notifications"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    notification_type: Mapped[str] = mapped_column(String(50), index=True)
+    title: Mapped[str] = mapped_column(String(150))
+    message: Mapped[str] = mapped_column(String(500))
+    is_read: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, index=True)
+
+    user: Mapped[User] = relationship(back_populates="notifications")
+
+
+class PasswordResetToken(Base):
+    __tablename__ = "password_reset_tokens"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    token_hash: Mapped[str] = mapped_column(String(64), unique=True, index=True)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+    used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+    user: Mapped[User] = relationship(back_populates="password_reset_tokens")

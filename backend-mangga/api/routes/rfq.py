@@ -6,7 +6,7 @@ from crud import rfq
 from db.session import get_db
 from models.domain_models import Role, User
 from schemas.rfq import RfqCreate, RfqResponse
-from services.rfq import approve_rfq, create_rfq
+from services.rfq import complete_rfq, approve_rfq, create_rfq, reject_rfq
 
 
 router = APIRouter()
@@ -51,6 +51,30 @@ def approve_order(
     admin: User = Depends(require_roles(Role.ADMIN_GUDANG)),
 ) -> RfqResponse:
     order = approve_rfq(db, rfq_id, admin.id)
+    db.commit()
+    db.refresh(order)
+    return order
+
+
+@router.put("/{rfq_id}/reject", response_model=RfqResponse)
+def reject_order(
+    rfq_id: int,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_roles(Role.ADMIN_GUDANG)),
+) -> RfqResponse:
+    order = reject_rfq(db, rfq_id)
+    db.commit()
+    db.refresh(order)
+    return order
+
+
+@router.put("/{rfq_id}/complete", response_model=RfqResponse)
+def complete_order(
+    rfq_id: int,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_roles(Role.ADMIN_GUDANG)),
+) -> RfqResponse:
+    order = complete_rfq(db, rfq_id)
     db.commit()
     db.refresh(order)
     return order

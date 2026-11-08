@@ -1,12 +1,13 @@
 from decimal import Decimal
 
-from pydantic import Field
+from pydantic import ConfigDict, Field
 
 from models.domain_models import Grade, Variety
 from schemas.base import CamelCaseSchema
 
 
 class InventoryCreate(CamelCaseSchema):
+    model_config = ConfigDict(extra="forbid")
     id_petani: int | None = None
     varietas: Variety
     grade: Grade
@@ -16,6 +17,7 @@ class InventoryCreate(CamelCaseSchema):
 
 
 class InventoryUpdate(CamelCaseSchema):
+    model_config = ConfigDict(extra="forbid")
     tonase_tersedia: Decimal | None = Field(default=None, ge=0, max_digits=12, decimal_places=3)
     harga_per_ton: Decimal | None = Field(default=None, ge=0, max_digits=14, decimal_places=2)
     is_active: bool | None = None

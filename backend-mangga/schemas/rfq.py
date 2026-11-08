@@ -1,13 +1,14 @@
 from datetime import datetime
 from decimal import Decimal
 
-from pydantic import Field
+from pydantic import ConfigDict, Field
 
 from models.domain_models import RfqStatus
 from schemas.base import CamelCaseSchema
 
 
 class RfqCreate(CamelCaseSchema):
+    model_config = ConfigDict(extra="forbid")
     id_mangga: int
     tonase_diminta: Decimal = Field(gt=0, max_digits=12, decimal_places=3)
 

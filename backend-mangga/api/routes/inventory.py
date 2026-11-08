@@ -5,7 +5,7 @@ from api.deps import get_current_user, require_roles
 from crud import inventory
 from crud.users import get_by_id
 from db.session import get_db
-from models.domain_models import Inventory, Role, User
+from models.domain_models import Grade, Inventory, Role, User, Variety
 from schemas.inventory import InventoryCreate, InventoryResponse, InventoryUpdate
 
 
@@ -16,9 +16,29 @@ router = APIRouter()
 def list_inventory(
     offset: int = Query(default=0, ge=0),
     limit: int = Query(default=50, ge=1, le=100),
+    varietas: Variety | None = Query(default=None),
+    grade: Grade | None = Query(default=None),
+    lokasi: str | None = Query(default=None, min_length=1, max_length=100),
     db: Session = Depends(get_db),
 ) -> list[InventoryResponse]:
-    return inventory.list_public(db, offset=offset, limit=limit)
+    return inventory.list_public(
+        db,
+        offset=offset,
+        limit=limit,
+        varietas=varietas,
+        grade=grade,
+        lokasi=lokasi,
+    )
+
+
+@router.get("/me", response_model=list[InventoryResponse])
+def list_my_inventory(
+    offset: int = Query(default=0, ge=0),
+    limit: int = Query(default=100, ge=1, le=100),
+    db: Session = Depends(get_db),
+    user: User = Depends(require_roles(Role.PETANI)),
+) -> list[InventoryResponse]:
+    return inventory.list_owned(db, user.id, offset=offset, limit=limit)
 
 
 @router.post("/", response_model=InventoryResponse, status_code=201)
@@ -44,6 +64,7 @@ def create_inventory(
             lokasi_kebun=payload.lokasi_kebun,
         ),
     )
+    inventory.add_audit(db, item, user.id, "CREATE")
     db.commit()
     db.refresh(item)
     return item
@@ -54,7 +75,7 @@ def update_inventory(
     inventory_id: int,
     payload: InventoryUpdate,
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
+    user: User = Depends(require_roles(Role.PETANI, Role.ADMIN_GUDANG)),
 ) -> InventoryResponse:
     item = inventory.get(db, inventory_id)
     if item is None:
@@ -63,6 +84,7 @@ def update_inventory(
         raise HTTPException(status_code=403, detail="Cannot update this inventory")
     for field, value in payload.model_dump(exclude_unset=True).items():
         setattr(item, field, value)
+    inventory.add_audit(db, item, user.id, "UPDATE")
     db.commit()
     db.refresh(item)
     return item

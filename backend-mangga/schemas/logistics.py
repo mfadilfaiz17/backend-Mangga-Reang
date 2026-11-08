@@ -1,12 +1,13 @@
 from datetime import datetime
 
-from pydantic import Field
+from pydantic import ConfigDict, Field
 
 from models.domain_models import LogisticsMilestone
 from schemas.base import CamelCaseSchema
 
 
 class TrackingCreate(CamelCaseSchema):
+    model_config = ConfigDict(extra="forbid")
     status_milestone: LogisticsMilestone
     catatan_qc: str | None = Field(default=None, max_length=1000)
 
